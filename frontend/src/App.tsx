@@ -1,35 +1,42 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import { Buffer } from "buffer";
+globalThis.Buffer = Buffer;
+import { env } from "./config/env.ts";
+import { useBackend } from "./hooks/useBackend";
 
-function App() {
-  const [count, setCount] = useState(0)
+import {
+  JwtProvider,
+  useJwtContext,
+} from "@lit-protocol/vincent-app-sdk/react";
+
+const { VITE_APP_ID } = env;
+
+function AppContent() {
+  const { authInfo } = useJwtContext();
+  const { getJwt } = useBackend();
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div>
+      {authInfo ? (
+        <div>
+          <h1>Welcome</h1>
+        </div>
+      ) : (
+        <div>
+          <h1>Please log in</h1>
+          <button onClick={getJwt}>Log In</button>
+        </div>
+      )}
+    </div>
+  );
 }
 
-export default App
+function App() {
+  return (
+    <JwtProvider appId={VITE_APP_ID}>
+      <AppContent />
+    </JwtProvider>
+  );
+}
+
+export default App;
