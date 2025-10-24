@@ -9,6 +9,10 @@
     "test": "jest"
   },
   "dependencies": {
+    "@lit-protocol/constants": "^8.0.4",
+    "@lit-protocol/lit-node-client": "^7.3.1",
+    "@lit-protocol/vincent-ability-erc20-approval": "3.1.0",
+    "@lit-protocol/vincent-app-sdk": "2.2.1",
     "body-parser": "^1.19.0",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
@@ -19,6 +23,7 @@
     "@types/jest": "^26.0.0",
     "@types/mongoose": "^5.11.97",
     "@types/node": "^14.14.0",
+    "ethers": "5.8.0",
     "jest": "^26.6.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
