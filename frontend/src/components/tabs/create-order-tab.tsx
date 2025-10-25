@@ -1,5 +1,5 @@
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -20,6 +20,11 @@ import {
 import { AlertCircle, CheckCircle, HelpCircle } from "lucide-react";
 import { useBackend } from "../../hooks/useBackend";
 import { TOKENS } from "../../utils/tokens";
+import {
+  fetchOraclePrice,
+  getOracleAddress,
+} from "../../utils/fetchPrice/fetchPrice";
+import { getMaxLTV } from "../../utils/aave/ltv";
 
 interface CreateOrderTabProps {
   userAddress: string;
@@ -57,7 +62,7 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
   const { createOrder } = useBackend();
 
   const [stopLossForm, setStopLossForm] = useState<StopLossFormData>({
-    collateralAsset: "ETH",
+    collateralAsset: "cbETH",
     debtAsset: "USDC",
     collateralAmount: "",
     borrowAmount: "",
@@ -65,7 +70,7 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
   });
 
   const [takeProfitForm, setTakeProfitForm] = useState<TakeProfitFormData>({
-    collateralAsset: "ETH",
+    collateralAsset: "cbETH",
     debtAsset: "USDC",
     collateralAmount: "",
     borrowAmount: "",
@@ -75,7 +80,7 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
   const [leveragedForm, setLeveragedForm] =
     useState<LeveragedAutomationFormData>({
       healthRatioToMaintain: "",
-      collateralAsset: "ETH",
+      collateralAsset: "cbETH",
       debtAsset: "USDC",
       collateralAmount: "",
       borrowAmount: "",
@@ -87,12 +92,123 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
   const [submittingType, setSubmittingType] = useState<string | null>(null);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
 
-  const calculateMaxBorrowAmount = (
+  const [maxBorrowLeveraged, setMaxBorrowLeveraged] = useState<number>(0);
+  const [maxBorrowStopLoss, setMaxBorrowStopLoss] = useState<number>(0);
+  const [maxBorrowTakeProfit, setMaxBorrowTakeProfit] = useState<number>(0);
+
+  // Fetch max borrow when relevant inputs change
+  useEffect(() => {
+    const fetchMaxBorrow = async () => {
+      if (
+        orderType === "stopLoss" &&
+        stopLossForm.collateralAsset &&
+        stopLossForm.debtAsset &&
+        stopLossForm.collateralAmount
+      ) {
+        await calculateMaxBorrowAmount(
+          "stopLoss",
+          TOKENS.baseSepolia[
+            stopLossForm.collateralAsset as keyof typeof TOKENS.baseSepolia
+          ],
+          TOKENS.baseSepolia[
+            stopLossForm.debtAsset as keyof typeof TOKENS.baseSepolia
+          ],
+          stopLossForm.collateralAmount
+        );
+      } else if (
+        orderType === "automatedLeverageManagement" &&
+        leveragedForm.collateralAsset &&
+        leveragedForm.debtAsset &&
+        leveragedForm.collateralAmount &&
+        leveragedForm.healthRatioToMaintain
+      ) {
+        await calculateMaxBorrowAmount(
+          "automatedLeverageManagement",
+          TOKENS.baseSepolia[
+            leveragedForm.collateralAsset as keyof typeof TOKENS.baseSepolia
+          ],
+          TOKENS.baseSepolia[
+            leveragedForm.debtAsset as keyof typeof TOKENS.baseSepolia
+          ],
+          leveragedForm.collateralAmount,
+          Number.parseFloat(leveragedForm.healthRatioToMaintain)
+        );
+      } else if (orderType === "takeProfit" && takeProfitForm.collateralAsset) {
+        await calculateMaxBorrowAmount(
+          "takeProfit",
+          TOKENS.baseSepolia[
+            takeProfitForm.collateralAsset as keyof typeof TOKENS.baseSepolia
+          ],
+          TOKENS.baseSepolia[
+            takeProfitForm.debtAsset as keyof typeof TOKENS.baseSepolia
+          ],
+          takeProfitForm.collateralAmount
+        );
+      }
+    };
+
+    fetchMaxBorrow();
+  }, [
+    leveragedForm.collateralAsset,
+    leveragedForm.debtAsset,
+    leveragedForm.collateralAmount,
+    leveragedForm.healthRatioToMaintain,
+    stopLossForm.collateralAsset,
+    stopLossForm.debtAsset,
+    stopLossForm.collateralAmount,
+    stopLossForm.minCollateralPrice,
+    takeProfitForm.collateralAsset,
+    takeProfitForm.debtAsset,
+    takeProfitForm.collateralAmount,
+  ]);
+
+  const calculateMaxBorrowAmount = async (
+    orderType: string,
+    collateralToken: string,
+    borrowToken: string,
     collateralAmount: string,
-    collateralPrice = 2000
-  ): number => {
-    if (!collateralAmount) return 0;
-    return Number.parseFloat(collateralAmount) * collateralPrice * 0.8;
+    healthRatioToMaintain?: number
+  ): Promise<number> => {
+    const collateralPrice = await fetchOraclePrice(
+      getOracleAddress(collateralToken) as string
+    );
+
+    const resp = await getMaxLTV(collateralToken);
+
+    let borrowAmount;
+
+    if (orderType === "automatedLeverageManagement" && healthRatioToMaintain) {
+      console.log(collateralAmount, collateralPrice, healthRatioToMaintain);
+      borrowAmount =
+        (Number(collateralAmount) *
+          Number(collateralPrice) *
+          Number(resp.ltv)) /
+        healthRatioToMaintain;
+
+      console.log("Max Borrow (Leverage):", borrowAmount);
+
+      setMaxBorrowLeveraged(borrowAmount);
+    } else if (orderType === "stopLoss") {
+      borrowAmount =
+        (Number(collateralAmount) *
+          Number(stopLossForm.minCollateralPrice) *
+          Number(resp.ltv)) /
+        100;
+
+      console.log("Max Borrow (Stop Loss):", borrowAmount);
+      setMaxBorrowStopLoss(borrowAmount);
+    } else if (orderType === "takeProfit") {
+      borrowAmount =
+        (Number(collateralAmount) *
+          Number(collateralPrice) *
+          Number(resp.ltv)) /
+        100;
+
+      console.log("Max Borrow (Take Profit):", borrowAmount);
+      setMaxBorrowTakeProfit(borrowAmount);
+    }
+
+    return borrowAmount || 0;
   };
 
   const validateBorrowAmount = (
@@ -108,17 +224,6 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
     setSubmittingType("stopLoss");
     setSubmitStatus("idle");
 
-    const maxBorrow = calculateMaxBorrowAmount(stopLossForm.collateralAmount);
-    if (!validateBorrowAmount(stopLossForm.borrowAmount, maxBorrow)) {
-      setSubmitStatus("error");
-      setSubmittingType(null);
-      return;
-    }
-
-    const collateralPriceMax = 0;
-    const collateralPriceMin = Number.parseFloat(
-      stopLossForm.minCollateralPrice
-    );
     const orderType = "stopLoss";
     const collateralTokenAddress: string =
       TOKENS.baseSepolia[
@@ -129,6 +234,17 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
       TOKENS.baseSepolia[
         stopLossForm.debtAsset as keyof typeof TOKENS.baseSepolia
       ] ?? "";
+
+    if (!validateBorrowAmount(stopLossForm.borrowAmount, maxBorrowStopLoss)) {
+      setSubmitStatus("error");
+      setSubmittingType(null);
+      return;
+    }
+
+    const collateralPriceMax = 0;
+    const collateralPriceMin = Number.parseFloat(
+      stopLossForm.minCollateralPrice
+    );
 
     createOrder({
       ethAddress: userAddress,
@@ -147,19 +263,6 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
     e.preventDefault();
     setSubmittingType("takeProfit");
     setSubmitStatus("idle");
-
-    const maxBorrow = calculateMaxBorrowAmount(takeProfitForm.collateralAmount);
-    if (!validateBorrowAmount(takeProfitForm.borrowAmount, maxBorrow)) {
-      setSubmitStatus("error");
-      setSubmittingType(null);
-      return;
-    }
-
-    const collateralPriceMax = Number.parseFloat(
-      takeProfitForm.maxCollateralPrice
-    );
-    const collateralPriceMin = 0;
-    const orderType = "takeProfit";
     const collateralTokenAddress: string =
       TOKENS.baseSepolia[
         takeProfitForm.collateralAsset as keyof typeof TOKENS.baseSepolia
@@ -169,6 +272,21 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
       TOKENS.baseSepolia[
         takeProfitForm.debtAsset as keyof typeof TOKENS.baseSepolia
       ] ?? "";
+
+    const orderType = "takeProfit";
+
+    if (
+      !validateBorrowAmount(takeProfitForm.borrowAmount, maxBorrowTakeProfit)
+    ) {
+      setSubmitStatus("error");
+      setSubmittingType(null);
+      return;
+    }
+
+    const collateralPriceMax = Number.parseFloat(
+      takeProfitForm.maxCollateralPrice
+    );
+    const collateralPriceMin = 0;
 
     createOrder({
       ethAddress: userAddress,
@@ -195,16 +313,6 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
       return;
     }
 
-    const maxBorrow = calculateMaxBorrowAmount(leveragedForm.collateralAmount);
-    if (!validateBorrowAmount(leveragedForm.borrowAmount, maxBorrow)) {
-      setSubmitStatus("error");
-      setSubmittingType(null);
-      return;
-    }
-
-    const collateralPriceMax = 0;
-    const collateralPriceMin = 0;
-    const orderType = "stopLoss";
     const collateralTokenAddress: string =
       TOKENS.baseSepolia[
         leveragedForm.collateralAsset as keyof typeof TOKENS.baseSepolia
@@ -214,6 +322,17 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
       TOKENS.baseSepolia[
         leveragedForm.debtAsset as keyof typeof TOKENS.baseSepolia
       ] ?? "";
+
+    const orderType = "stopLoss";
+
+    if (!validateBorrowAmount(leveragedForm.borrowAmount, maxBorrowLeveraged)) {
+      setSubmitStatus("error");
+      setSubmittingType(null);
+      return;
+    }
+
+    const collateralPriceMax = 0;
+    const collateralPriceMin = 0;
 
     createOrder({
       ethAddress: userAddress,
@@ -228,41 +347,6 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
     setSubmitStatus("success");
     setSubmittingType(null);
   };
-
-  const maxBorrowStopLoss = calculateMaxBorrowAmount(
-    stopLossForm.collateralAmount
-  );
-  const maxBorrowTakeProfit = calculateMaxBorrowAmount(
-    takeProfitForm.collateralAmount
-  );
-  const maxBorrowLeveraged = calculateMaxBorrowAmount(
-    leveragedForm.collateralAmount
-  );
-
-  const isStopLossValid =
-    stopLossForm.collateralAsset &&
-    stopLossForm.debtAsset &&
-    stopLossForm.collateralAmount &&
-    stopLossForm.borrowAmount &&
-    stopLossForm.minCollateralPrice &&
-    validateBorrowAmount(stopLossForm.borrowAmount, maxBorrowStopLoss);
-
-  const isTakeProfitValid =
-    takeProfitForm.collateralAsset &&
-    takeProfitForm.debtAsset &&
-    takeProfitForm.collateralAmount &&
-    takeProfitForm.borrowAmount &&
-    takeProfitForm.maxCollateralPrice &&
-    validateBorrowAmount(takeProfitForm.borrowAmount, maxBorrowTakeProfit);
-
-  const isLeveragedValid =
-    leveragedForm.healthRatioToMaintain &&
-    Number.parseFloat(leveragedForm.healthRatioToMaintain) > 100 &&
-    leveragedForm.collateralAsset &&
-    leveragedForm.debtAsset &&
-    leveragedForm.collateralAmount &&
-    leveragedForm.borrowAmount &&
-    validateBorrowAmount(leveragedForm.borrowAmount, maxBorrowLeveraged);
 
   const MaxBorrowTooltip = () => (
     <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 z-10 shadow-lg">
@@ -644,12 +728,12 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
                     type="number"
                     placeholder="e.g., 150"
                     value={leveragedForm.healthRatioToMaintain}
-                    onChange={(e) =>
+                    onChange={async (e) => {
                       setLeveragedForm({
                         ...leveragedForm,
                         healthRatioToMaintain: e.target.value,
-                      })
-                    }
+                      });
+                    }}
                     className={`bg-slate-800 border-slate-700 text-white placeholder-slate-500 ${
                       leveragedForm.healthRatioToMaintain &&
                       Number.parseFloat(leveragedForm.healthRatioToMaintain) <=

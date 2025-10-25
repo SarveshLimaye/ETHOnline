@@ -37,6 +37,7 @@ export const env = createEnv({
   client: {
     VITE_APP_ID: z.coerce.number(),
     VITE_BACKEND_URL: z.string(),
+    VITE_BASE_SEPOLIA_RPC: z.string(),
     VITE_REDIRECT_URI: z.string().default(window.location.origin),
   },
 });
