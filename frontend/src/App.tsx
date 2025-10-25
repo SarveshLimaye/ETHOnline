@@ -1,10 +1,9 @@
-import { useState } from "react";
 import { Buffer } from "buffer";
 globalThis.Buffer = Buffer;
 import { env } from "./config/env.ts";
-import { useBackend } from "./hooks/useBackend";
 import "./App.css";
 import { LoginPage } from "./components/Login.tsx";
+import { DashboardPage } from "./components/Dashboard.tsx";
 
 import {
   JwtProvider,
@@ -19,9 +18,10 @@ function AppContent() {
   return (
     <div>
       {authInfo ? (
-        <div>
-          <h1>Welcome</h1>
-        </div>
+        <DashboardPage
+          userAddress={authInfo.pkp.ethAddress}
+          onLogout={() => {}}
+        />
       ) : (
         <LoginPage />
       )}
