@@ -223,6 +223,11 @@
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.27.1"
 
+"@bgd-labs/aave-address-book@^4.35.0":
+  version "4.35.0"
+  resolved "https://registry.yarnpkg.com/@bgd-labs/aave-address-book/-/aave-address-book-4.35.0.tgz#d8c1e9d085ac5cea6663f0e459c0ab82caa69064"
+  integrity sha512-EQ50H+I6mojTnyIuhSW2O2+NtsHQ9c2Bsq9x2TxxKfQD2CkOLdnvCXCtXyhAz7s8Qpadcmwuol2vYxaRD/IMbA==
+
 "@cto.af/wtf8@0.0.2":
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/@cto.af/wtf8/-/wtf8-0.0.2.tgz#0035df6e25eaadccd4c6289c91f5c373d20a402f"

@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bgd-labs/aave-address-book": "^4.35.0",
     "@hookform/resolvers": "^3.10.0",
     "@lit-protocol/auth-helpers": "^8.1.0",
     "@lit-protocol/constants": "^8.0.3",
