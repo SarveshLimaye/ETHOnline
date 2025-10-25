@@ -7,13 +7,12 @@ const orderSchema: Schema = new Schema(
     collateralPriceMin: { type: Number, required: true },
     collateralAsset: { type: String, required: true },
     loanAsset: { type: String, required: true },
-    loanTokenPriceMin: { type: Number, required: true },
-    loanTokenPriceMax: { type: Number, required: true },
     orderType: {
       type: String,
       enum: ["automatedLeverageManagement", "stopLoss", "takeProfit"],
       required: true,
     },
+    healthRatioToMaintain: { type: Number, default: 150 },
   },
   { timestamps: true }
 );

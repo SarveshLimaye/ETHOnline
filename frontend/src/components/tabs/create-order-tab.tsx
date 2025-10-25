@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "../ui/select";
 import { AlertCircle, CheckCircle, HelpCircle } from "lucide-react";
+import { useBackend } from "../../hooks/useBackend";
+import { TOKENS } from "../../utils/tokens";
 
 interface CreateOrderTabProps {
   userAddress: string;
@@ -49,8 +51,10 @@ interface LeveragedAutomationFormData {
 
 export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
   const [orderType, setOrderType] = useState<
-    "stopLoss" | "takeProfit" | "leveraged"
+    "stopLoss" | "takeProfit" | "automatedLeverageManagement"
   >("stopLoss");
+
+  const { createOrder } = useBackend();
 
   const [stopLossForm, setStopLossForm] = useState<StopLossFormData>({
     collateralAsset: "ETH",
@@ -111,26 +115,32 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
       return;
     }
 
-    setTimeout(() => {
-      console.log("[v0] Stop Loss Order created:", {
-        ...stopLossForm,
-        ethAddress: userAddress,
-        orderType: "stopLoss",
-      });
-      setSubmitStatus("success");
-      setSubmittingType(null);
+    const collateralPriceMax = 0;
+    const collateralPriceMin = Number.parseFloat(
+      stopLossForm.minCollateralPrice
+    );
+    const orderType = "stopLoss";
+    const collateralTokenAddress: string =
+      TOKENS.baseSepolia[
+        stopLossForm.collateralAsset as keyof typeof TOKENS.baseSepolia
+      ] ?? "";
 
-      setTimeout(() => {
-        setStopLossForm({
-          collateralAsset: "ETH",
-          debtAsset: "USDC",
-          collateralAmount: "",
-          borrowAmount: "",
-          minCollateralPrice: "",
-        });
-        setSubmitStatus("idle");
-      }, 2000);
-    }, 1500);
+    const debtTokenAddress: string =
+      TOKENS.baseSepolia[
+        stopLossForm.debtAsset as keyof typeof TOKENS.baseSepolia
+      ] ?? "";
+
+    createOrder({
+      ethAddress: userAddress,
+      collateralAsset: collateralTokenAddress,
+      loanAsset: debtTokenAddress,
+      collateralPriceMax,
+      collateralPriceMin,
+      orderType,
+    });
+
+    setSubmitStatus("success");
+    setSubmittingType(null);
   };
 
   const handleTakeProfitSubmit = async (e: React.FormEvent) => {
@@ -145,31 +155,37 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
       return;
     }
 
-    setTimeout(() => {
-      console.log("[v0] Take Profit Order created:", {
-        ...takeProfitForm,
-        ethAddress: userAddress,
-        orderType: "takeProfit",
-      });
-      setSubmitStatus("success");
-      setSubmittingType(null);
+    const collateralPriceMax = Number.parseFloat(
+      takeProfitForm.maxCollateralPrice
+    );
+    const collateralPriceMin = 0;
+    const orderType = "takeProfit";
+    const collateralTokenAddress: string =
+      TOKENS.baseSepolia[
+        takeProfitForm.collateralAsset as keyof typeof TOKENS.baseSepolia
+      ] ?? "";
 
-      setTimeout(() => {
-        setTakeProfitForm({
-          collateralAsset: "ETH",
-          debtAsset: "USDC",
-          collateralAmount: "",
-          borrowAmount: "",
-          maxCollateralPrice: "",
-        });
-        setSubmitStatus("idle");
-      }, 2000);
-    }, 1500);
+    const debtTokenAddress: string =
+      TOKENS.baseSepolia[
+        takeProfitForm.debtAsset as keyof typeof TOKENS.baseSepolia
+      ] ?? "";
+
+    createOrder({
+      ethAddress: userAddress,
+      collateralAsset: collateralTokenAddress,
+      loanAsset: debtTokenAddress,
+      collateralPriceMax,
+      collateralPriceMin,
+      orderType,
+    });
+
+    setSubmitStatus("success");
+    setSubmittingType(null);
   };
 
   const handleLeveragedSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmittingType("leveraged");
+    setSubmittingType("automatedLeverageManagement");
     setSubmitStatus("idle");
 
     const healthRatio = Number.parseFloat(leveragedForm.healthRatioToMaintain);
@@ -186,26 +202,31 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
       return;
     }
 
-    setTimeout(() => {
-      console.log("[v0] Leveraged Automation Order created:", {
-        ...leveragedForm,
-        ethAddress: userAddress,
-        orderType: "automatedLeverageManagement",
-      });
-      setSubmitStatus("success");
-      setSubmittingType(null);
+    const collateralPriceMax = 0;
+    const collateralPriceMin = 0;
+    const orderType = "stopLoss";
+    const collateralTokenAddress: string =
+      TOKENS.baseSepolia[
+        leveragedForm.collateralAsset as keyof typeof TOKENS.baseSepolia
+      ] ?? "";
 
-      setTimeout(() => {
-        setLeveragedForm({
-          healthRatioToMaintain: "",
-          collateralAsset: "ETH",
-          debtAsset: "USDC",
-          collateralAmount: "",
-          borrowAmount: "",
-        });
-        setSubmitStatus("idle");
-      }, 2000);
-    }, 1500);
+    const debtTokenAddress: string =
+      TOKENS.baseSepolia[
+        leveragedForm.debtAsset as keyof typeof TOKENS.baseSepolia
+      ] ?? "";
+
+    createOrder({
+      ethAddress: userAddress,
+      collateralAsset: collateralTokenAddress,
+      loanAsset: debtTokenAddress,
+      collateralPriceMax,
+      collateralPriceMin,
+      orderType,
+      healthRatioToMaintain: healthRatio,
+    });
+
+    setSubmitStatus("success");
+    setSubmittingType(null);
   };
 
   const maxBorrowStopLoss = calculateMaxBorrowAmount(
@@ -278,7 +299,9 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
           <SelectContent className="bg-slate-800 border-slate-700 text-white">
             <SelectItem value="stopLoss">Stop Loss</SelectItem>
             <SelectItem value="takeProfit">Take Profit</SelectItem>
-            <SelectItem value="leveraged">Leveraged Automation</SelectItem>
+            <SelectItem value="automatedLeverageManagement">
+              Leverage Management
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -436,7 +459,6 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
 
               <Button
                 type="submit"
-                disabled={!isStopLossValid || submittingType === "stopLoss"}
                 className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submittingType === "stopLoss"
@@ -587,7 +609,7 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
 
               <Button
                 type="submit"
-                disabled={!isTakeProfitValid || submittingType === "takeProfit"}
+                // disabled={!isTakeProfitValid || submittingType === "takeProfit"}
                 className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submittingType === "takeProfit"
@@ -599,7 +621,7 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
         </Card>
       )}
 
-      {orderType === "leveraged" && (
+      {orderType === "automatedLeverageManagement" && (
         <Card className="border-slate-800 bg-slate-900/50">
           <CardHeader>
             <CardTitle className="text-lg text-white">
@@ -655,7 +677,7 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700 text-white">
                       <SelectItem value="cbETH">cbETH</SelectItem>
-                      <SelectItem value="cbETH">WBTC</SelectItem>
+                      <SelectItem value="WBTC">WBTC</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -745,11 +767,14 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
 
               <Button
                 type="submit"
-                disabled={!isLeveragedValid || submittingType === "leveraged"}
+                // disabled={
+                //   !isLeveragedValid ||
+                //   submittingType === "automatedLeverageManagement"
+                // }
                 className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submittingType === "leveraged"
-                  ? "Creating Leveraged Automation Order..."
+                {submittingType === "automatedLeverageManagement"
+                  ? "Creating Automated Leverage Management Order..."
                   : "Create Leveraged Automation Order"}
               </Button>
             </form>
