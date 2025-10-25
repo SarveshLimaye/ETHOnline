@@ -5,8 +5,8 @@ const orderSchema: Schema = new Schema(
     ethAddress: { type: String, required: true },
     collateralPriceMax: { type: Number, required: true },
     collateralPriceMin: { type: Number, required: true },
-    collateralMarketAddress: { type: String, required: true },
-    loanTokenMarketAddress: { type: String, required: true },
+    collateralAsset: { type: String, required: true },
+    loanAsset: { type: String, required: true },
     loanTokenPriceMin: { type: Number, required: true },
     loanTokenPriceMax: { type: Number, required: true },
     orderType: {
