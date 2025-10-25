@@ -4,6 +4,9 @@ import errorHandler from "./middleware/errorHandler";
 import { connectDB } from "./config/database";
 // @ts-ignore
 import cors from "cors";
+import cron from "node-cron";
+import { rebalancePositions } from "./cron/cron";
+import { exec } from "child_process";
 
 const corsConfig = {
   origin: "*", // Allow all origins - adjust as needed for security
@@ -20,6 +23,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
 connectDB();
+
+cron.schedule("*/30 * * * * *", async () => {
+  await rebalancePositions();
+  console.log("Rebalancing cron job executed");
+});
 
 // Routes
 app.use("/api", orderRoutes);
