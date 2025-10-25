@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import Order from "../models/Order";
 import { OrderType } from "../types";
-import { addMarketApproval } from "../lit-automated-jobs/erc20Approval";
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
