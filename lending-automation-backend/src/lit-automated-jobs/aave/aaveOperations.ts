@@ -13,94 +13,82 @@ function getAaveAbilityClient() {
   });
 }
 
-export async function supplyToAave({
+export async function aaveOperation({
   ethAddress,
   asset,
   amount,
   rpcUrl,
   chain,
+  operation,
 }: {
   ethAddress: `0x${string}`;
   asset: `0x${string}`;
   amount: number;
   rpcUrl: string;
   chain: string;
+  operation: string;
 }): Promise<`0x${string}` | undefined> {
   const aaveSupplyToolClient = getAaveAbilityClient();
 
   const supplyParams = {
-    operation: "supply" as const,
+    operation: operation,
     rpcUrl: rpcUrl,
     chain: chain,
     asset: asset,
     amount: amount.toString(),
+    interestRateMode: 2, // 1 for stable, 2 for variable (only for borrow operation)
   };
 
   const aaveSupplyContext = {
     delegatorPkpEthAddress: ethAddress,
   };
 
-  const supplyPreCheckResult = await aaveSupplyToolClient.precheck(
+  const operationPreCheckResult = await aaveSupplyToolClient.precheck(
     supplyParams,
     aaveSupplyContext
   );
 
-  console.log("Aave Supply Precheck Result:", supplyPreCheckResult);
-
   const supplyExecutionParams = {
-    operation: "supply" as const,
+    operation: operation,
     chain: chain,
     asset: asset,
     amount: amount.toString(),
+    interestRateMode: 2,
   };
 
   console.log(chain, "chain in execution params");
 
-  if (supplyPreCheckResult.success) {
-    const supplyExecutionResult = await aaveSupplyToolClient.execute(
+  if (operationPreCheckResult.success) {
+    const operationExecutionResult = await aaveSupplyToolClient.execute(
       supplyExecutionParams,
       aaveSupplyContext
     );
 
-    if (!supplyExecutionResult.success) {
+    if (!operationExecutionResult.success) {
       throw new Error(
-        `Aave supply execution failed: ${supplyExecutionResult.error}`
+        `Aave supply execution failed: ${operationExecutionResult.error}`
       );
     }
 
-    return supplyExecutionResult.result.transactionHash;
+    return operationExecutionResult.result.transactionHash;
   } else {
     // Handle different types of failures
-    if (supplyPreCheckResult.runtimeError) {
-      console.error("Runtime error:", supplyPreCheckResult.runtimeError);
+    if (operationPreCheckResult.runtimeError) {
+      console.error("Runtime error:", operationPreCheckResult.runtimeError);
     }
-    if (supplyPreCheckResult.schemaValidationError) {
+    if (operationPreCheckResult.schemaValidationError) {
       console.error(
         "Schema validation error:",
-        supplyPreCheckResult.schemaValidationError
+        operationPreCheckResult.schemaValidationError
       );
     }
-    if (supplyPreCheckResult.result) {
-      console.log("Aave precheck result details:", supplyPreCheckResult.result);
-      console.error("Aave precheck failed:", supplyPreCheckResult.result.error);
+    if (operationPreCheckResult.result) {
+      console.error(
+        "Aave precheck failed:",
+        operationPreCheckResult.result.error
+      );
     }
 
     return undefined;
   }
 }
-
-// export async function evmSupplyToAave({
-//   ethAddress,
-//   asset,
-//   amount,
-//   rpcUrl,
-//   chain,
-// }: {
-//   ethAddress: `0x${string}`;
-//   asset: `0x${string}`;
-//   amount: number;
-//   rpcUrl: string;
-//   chain: string;
-// }): Promise<`0x${string}` | undefined> {
-//   const aaveSupplyToolClient = getAaveAbilityClient();
-// }
