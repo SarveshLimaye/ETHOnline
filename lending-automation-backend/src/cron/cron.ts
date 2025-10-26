@@ -4,7 +4,11 @@ import { ethers } from "ethers";
 import dotenv from "dotenv";
 
 import { AaveV3BaseSepolia } from "@bgd-labs/aave-address-book";
-import { aaveOperation } from "../lit-automated-jobs/aave/aaveOperations";
+import {
+  handleAutomatedLeverageManagement,
+  handleStopLoss,
+  handleTakeProfit,
+} from "./utils/helper";
 
 dotenv.config();
 
@@ -44,14 +48,16 @@ export const rebalancePositions = async () => {
       );
 
       if (order.orderType === "takeProfit") {
-        // to-do: implement take profit logic
+        handleTakeProfit(order, collateralPrice);
       } else if (order.orderType === "stopLoss") {
-        // to-do: implement stop loss logic
-      } else if (order.orderType === "rebalance") {
-        // to-do: implement rebalance logic
+        handleStopLoss(order, collateralPrice);
+      } else if (order.orderType === "automatedLeverageManagement") {
+        handleAutomatedLeverageManagement(order, collateralPrice, loanPrice);
       }
     }
-  } catch (error) {}
+  } catch (error) {
+    console.error("Error in rebalancePositions:", error);
+  }
 };
 
 const getOracleAddress = (assetAddress: string) => {
