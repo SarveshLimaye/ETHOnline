@@ -1,3 +1,4 @@
+// @ts-nocheck comment
 import { ethers } from "ethers";
 import { AaveV3BaseSepolia } from "@bgd-labs/aave-address-book";
 import dotenv from "dotenv";

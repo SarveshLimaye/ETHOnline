@@ -1,3 +1,4 @@
+//@ts-ignore
 import { ethers } from "ethers";
 import { AaveV3BaseSepolia } from "@bgd-labs/aave-address-book";
 

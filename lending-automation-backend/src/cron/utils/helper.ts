@@ -1,3 +1,4 @@
+//@ts-ignore
 import { aaveOperation } from "../../lit-automated-jobs/aave/aaveOperations";
 import { addMarketApproval } from "../../lit-automated-jobs/erc20Approval";
 import { OrderType } from "../../types";

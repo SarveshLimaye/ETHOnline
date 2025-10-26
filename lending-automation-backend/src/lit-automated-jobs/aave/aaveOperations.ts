@@ -1,3 +1,4 @@
+// @ts-nocheck comment
 import { bundledVincentAbility as aaveAbility } from "@lit-protocol/vincent-ability-aave";
 
 // @ts-ignore

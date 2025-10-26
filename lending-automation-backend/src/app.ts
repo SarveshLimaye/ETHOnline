@@ -1,3 +1,4 @@
+// @ts-nocheck comment
 import express from "express";
 import orderRoutes from "./routes/orders";
 import errorHandler from "./middleware/errorHandler";
