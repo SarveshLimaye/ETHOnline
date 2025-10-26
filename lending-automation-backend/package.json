@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "API for automating leverage management, stop loss, and take profit orders on Aave.",
   "main": "src/server.ts",
+  "type": "module",
   "scripts": {
     "start": "nodemon --exec tsx src/server.ts",
     "build": "tsc",
