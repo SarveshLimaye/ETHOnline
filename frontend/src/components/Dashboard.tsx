@@ -42,15 +42,7 @@ export function DashboardPage({ userAddress, onLogout }: DashboardPageProps) {
                   {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
                 </span>
               </div>
-              <Button
-                onClick={onLogout}
-                variant="ghost"
-                size="sm"
-                className="text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
+
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="sm:hidden text-slate-400 hover:text-white"

@@ -94,6 +94,13 @@ export const useBackend = () => {
     [sendRequest]
   );
 
+  const getOrdersByAddress = useCallback(
+    async (ethAddress: string) => {
+      return sendRequest<Order[]>(`/api/orders/user/${ethAddress}`, "GET");
+    },
+    [sendRequest]
+  );
+
   const litAutomatedApproval = useCallback(
     async (request: LitRequest) => {
       return sendRequest<LitAutomatedResponse>(
@@ -127,6 +134,35 @@ export const useBackend = () => {
     [sendRequest]
   );
 
+  const litAutomateWithdraw = useCallback(
+    async (request: LitRequest) => {
+      return sendRequest<LitAutomatedResponse>(
+        "/api/orders/lit-withdraw",
+        "POST",
+        request
+      );
+    },
+    [sendRequest]
+  );
+
+  const litAutomateRepay = useCallback(
+    async (request: LitRequest) => {
+      return sendRequest<LitAutomatedResponse>(
+        "/api/orders/lit-repay",
+        "POST",
+        request
+      );
+    },
+    [sendRequest]
+  );
+
+  const deleteOrder = useCallback(
+    async (id: string) => {
+      return sendRequest<{ message: string }>(`/api/orders/${id}`, "DELETE");
+    },
+    [sendRequest]
+  );
+
   return {
     getJwt,
     sendRequest,
@@ -134,5 +170,9 @@ export const useBackend = () => {
     litAutomatedApproval,
     litAutomatedSupply,
     litAutomatedBorrow,
+    getOrdersByAddress,
+    litAutomateWithdraw,
+    litAutomateRepay,
+    deleteOrder,
   };
 };
