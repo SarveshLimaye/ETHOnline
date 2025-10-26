@@ -635,6 +635,25 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
                   </Select>
                 </div>
 
+                {/* Min Collateral Price */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-slate-300">
+                    Minimum Price of Collateral ({stopLossForm.collateralAsset})
+                  </Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 1500"
+                    value={stopLossForm.minCollateralPrice}
+                    onChange={(e) =>
+                      setStopLossForm({
+                        ...stopLossForm,
+                        minCollateralPrice: e.target.value,
+                      })
+                    }
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
+                  />
+                </div>
+
                 {/* Collateral Amount */}
                 <div className="space-y-2">
                   <Label className="text-slate-300">
@@ -695,25 +714,6 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
                       Max allowed: {maxBorrowStopLoss.toFixed(2)}
                     </p>
                   </div>
-                </div>
-
-                {/* Min Collateral Price */}
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-300">
-                    Minimum Price of Collateral ({stopLossForm.collateralAsset})
-                  </Label>
-                  <Input
-                    type="number"
-                    placeholder="e.g., 1500"
-                    value={stopLossForm.minCollateralPrice}
-                    onChange={(e) =>
-                      setStopLossForm({
-                        ...stopLossForm,
-                        minCollateralPrice: e.target.value,
-                      })
-                    }
-                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
-                  />
                 </div>
               </div>
 
@@ -784,6 +784,26 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
                   </Select>
                 </div>
 
+                {/* Max Collateral Price */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-slate-300">
+                    Maximum Price of Collateral (
+                    {takeProfitForm.collateralAsset})
+                  </Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g., 3000"
+                    value={takeProfitForm.maxCollateralPrice}
+                    onChange={(e) =>
+                      setTakeProfitForm({
+                        ...takeProfitForm,
+                        maxCollateralPrice: e.target.value,
+                      })
+                    }
+                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
+                  />
+                </div>
+
                 {/* Collateral Amount */}
                 <div className="space-y-2">
                   <Label className="text-slate-300">
@@ -844,26 +864,6 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
                       Max allowed: {maxBorrowTakeProfit.toFixed(2)}
                     </p>
                   </div>
-                </div>
-
-                {/* Max Collateral Price */}
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-slate-300">
-                    Maximum Price of Collateral (
-                    {takeProfitForm.collateralAsset})
-                  </Label>
-                  <Input
-                    type="number"
-                    placeholder="e.g., 3000"
-                    value={takeProfitForm.maxCollateralPrice}
-                    onChange={(e) =>
-                      setTakeProfitForm({
-                        ...takeProfitForm,
-                        maxCollateralPrice: e.target.value,
-                      })
-                    }
-                    className="bg-slate-800 border-slate-700 text-white placeholder-slate-500"
-                  />
                 </div>
               </div>
 
