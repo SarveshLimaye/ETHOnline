@@ -25,8 +25,6 @@ An intelligent, non-custodial position management system offering multiple autom
 
 - 🛑 **Stop Loss** - Auto-close positions when price hits configured thresholds
 - 🎯 **Take Profit** - Secure gains by closing at target prices
-- 📉 **Auto-Repay** - Reduce leverage when prices drop to prevent liquidation
-- 📈 **Auto-Boost** - Increase leverage when prices rise to maximize returns
 - ⚖️ **Leverage Management** - Continuously rebalance to maintain healthy ratios
 
 ## ✨ Key Features
@@ -57,47 +55,8 @@ An intelligent, non-custodial position management system offering multiple autom
 
 ## 🏗️ Architecture
 
-```
-┌─────────────┐
-│    User     │
-└──────┬──────┘
-       │ (1) Connect & Delegate Permission
-       │
-┌──────▼──────────────────────────────────┐
-│         Frontend (Vite + React)         │
-│  - Wallet Connection                    │
-│  - Position Configuration               │
-│  - Dashboard & Monitoring               │
-└──────┬──────────────────────────────────┘
-       │
-       │ (2) API Calls
-       │
-┌──────▼──────────────────────────────────┐
-│         Backend (Node.js)               │
-│  - Vincent App Integration              │
-│  - Position Monitoring Service          │
-│  - Trigger Detection Logic              │
-└──────┬──────────────────────────────────┘
-       │
-       │ (3) Execute Lit Action
-       │
-┌──────▼──────────────────────────────────┐
-│      Vincent / Lit Protocol             │
-│  - PKP Wallet (Agent)                   │
-│  - Lit Actions (TEE Execution)          │
-│  - MPC-TSS Key Management               │
-└──────┬──────────────────────────────────┘
-       │
-       │ (4) Sign & Submit Transactions
-       │
-┌──────▼──────────────────────────────────┐
-│          Aave Protocol                  │
-│  - Supply Collateral                    │
-│  - Borrow Assets                        │
-│  - Repay Debt                           │
-│  - Withdraw Collateral                  │
-└─────────────────────────────────────────┘
-```
+
+<img width="1440" height="965" alt="Screenshot 2025-10-26 at 8 13 23 PM" src="https://github.com/user-attachments/assets/b64b70ce-7476-4bb0-80bd-82f4a184e4ec" />
 
 ### Component Breakdown
 
@@ -149,8 +108,7 @@ An intelligent, non-custodial position management system offering multiple autom
 ### Blockchain & DeFi
 
 - **Aave V3** - Lending protocol
-- **EVM Chains** - Ethereum, Polygon, Arbitrum, etc.
-- **Solana** - (via Vincent's cross-chain support)
+
 
 ## 📦 Installation
 
@@ -423,10 +381,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- [Vincent Platform](https://vincent.lol)
+- [Vincent Platform](https://docs.heyvincent.ai/concepts/introduction/about)
 - [Lit Protocol Docs](https://developer.litprotocol.com)
 - [Aave V3 Docs](https://docs.aave.com)
-- [Project Demo](https://demo.yourproject.com)
 
 ---
 
