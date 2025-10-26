@@ -21,6 +21,17 @@ export type Order = {
   healthRatioToMaintain?: number;
 };
 
+export type LitRequest = {
+  ethAddress: string;
+  asset: string;
+  amount: number;
+};
+
+export type LitAutomatedResponse = {
+  txHash: `0x${string}` | string;
+  status: "success" | "failure";
+};
+
 export const useBackend = () => {
   const { authInfo } = useJwtContext();
   const vincentWebAuthClient = useVincentWebAuthClient(VITE_APP_ID);
@@ -68,7 +79,8 @@ export const useBackend = () => {
         throw new Error(`Backend error:`);
       }
 
-      return json.data;
+      // @ts-ignore
+      return json;
     },
     [authInfo]
   );
@@ -80,9 +92,45 @@ export const useBackend = () => {
     [sendRequest]
   );
 
+  const litAutomatedApproval = useCallback(
+    async (request: LitRequest) => {
+      return sendRequest<LitAutomatedResponse>(
+        "/api/orders/lit-approve",
+        "POST",
+        request
+      );
+    },
+    [sendRequest]
+  );
+
+  const litAutomatedSupply = useCallback(
+    async (request: LitRequest) => {
+      return sendRequest<LitAutomatedResponse>(
+        "/api/orders/lit-supply",
+        "POST",
+        request
+      );
+    },
+    [sendRequest]
+  );
+
+  const litAutomatedBorrow = useCallback(
+    async (request: LitRequest) => {
+      return sendRequest<LitAutomatedResponse>(
+        "/api/orders/lit-borrow",
+        "POST",
+        request
+      );
+    },
+    [sendRequest]
+  );
+
   return {
     getJwt,
     sendRequest,
     createOrder,
+    litAutomatedApproval,
+    litAutomatedSupply,
+    litAutomatedBorrow,
   };
 };

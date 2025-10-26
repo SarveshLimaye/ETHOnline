@@ -24,10 +24,10 @@ app.use(express.urlencoded({ extended: true }));
 // Connect to MongoDB
 connectDB();
 
-cron.schedule("*/30 * * * * *", async () => {
-  await rebalancePositions();
-  console.log("Rebalancing cron job executed");
-});
+// cron.schedule("*/30 * * * * *", async () => {
+//   await rebalancePositions();
+//   console.log("Rebalancing cron job executed");
+// });
 
 // Routes
 app.use("/api", orderRoutes);
