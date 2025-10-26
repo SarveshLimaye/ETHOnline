@@ -45,7 +45,7 @@ An intelligent, non-custodial position management system offering multiple autom
 
 ### Automation
 
-- **AI agent monitoring** - Continuous off-chain price surveillance
+- **Price monitoring** - Continuous off-chain price surveillance
 - **TEE execution** - Secure, verifiable execution in Trusted Execution Environments
 - **Multi-protocol support** - Works with Aave and other DeFi protocols
 
@@ -253,16 +253,6 @@ Choose your protection mode:
 - Set maximum collateral price (long) or minimum debt price (short)
 - Secure gains automatically at target price
 
-**Auto-Repay**
-
-- Set health factor threshold (e.g., 1.5)
-- System repays debt when position approaches liquidation
-
-**Auto-Boost**
-
-- Set safe health factor threshold (e.g., 2.0)
-- System increases leverage when position is healthy
-
 **Leverage Position**
 
 - Set target health ratio (e.g., 1.8)
@@ -274,13 +264,7 @@ Choose your protection mode:
 - Approve token spending
 - Supply collateral to Aave via PKP wallet
 
-### 5. Monitor Position
-
-- View real-time health factor
-- Track collateral and debt values
-- Monitor protection trigger status
-
-### 6. Revoke Permission (Optional)
+### 5. Revoke Permission (Optional)
 
 - Click "Revoke Permission" anytime
 - Agent will no longer manage your position
@@ -305,35 +289,9 @@ Replace `3658078518` with your actual Vincent project ID in the environment vari
 - Users delegate signing permission to the PKP without transferring assets
 - Private keys never exist in a single location - distributed across 100+ nodes
 
-**2. Lit Actions**
+**12 Programmable Key Pairs (PKPs)**
 
-- Custom JavaScript code executed in Trusted Execution Environments (TEEs)
-- Our Lit Actions contain the protection logic:
-  ```javascript
-  // Simplified example of Stop Loss Lit Action
-  const stopLossAction = async () => {
-    const currentPrice = await fetchPrice(collateralToken);
-    if (currentPrice <= stopLossPrice) {
-      await repayDebt(pkpWallet, debtAmount);
-      await withdrawCollateral(pkpWallet, collateralAmount);
-    }
-  };
-  ```
-- Executed securely and verifiably across Lit's decentralized network
 
-**3. Fine-Grained Policies**
-
-- Users set specific policies for what the PKP can do:
-  - "Repay debt on Aave only when health factor < 1.5"
-  - "Cannot withdraw more than X collateral"
-  - "Only interact with approved contract addresses"
-- Policies are verifiable on-chain and revocable anytime
-
-**4. Cross-Chain Support**
-
-- Vincent supports Solana, EVM chains, and native Bitcoin
-- Position protection can work across multiple chains
-- Future roadmap includes cross-chain arbitrage and bridging
 
 ### Vincent Benefits for This Project
 
@@ -341,13 +299,12 @@ Replace `3658078518` with your actual Vincent project ID in the environment vari
 ✅ **Non-Custodial** - Users maintain asset ownership at all times
 ✅ **Verifiable** - All agent actions are auditable on-chain
 ✅ **Revocable** - Users can revoke delegation instantly
-✅ **Cross-Chain** - Build once, deploy across multiple networks
 
 ### Getting Your Vincent Project ID
 
-1. Visit [Vincent Platform](https://vincent.lol)
+1. Visit Vincet dashboard
 2. Create a new Vincent App
-3. Configure your app's abilities and policies
+3. Configure your app's abilities(add aave, erc20 approval and transfer)
 4. Copy your Project ID from the dashboard
 5. Add it to your `.env` files
 
@@ -383,35 +340,6 @@ Replace `3658078518` with your actual Vincent project ID in the environment vari
 
 ---
 
-### Auto-Repay Mode
-
-**Purpose:** Dynamically reduce leverage as prices drop
-
-**How it works:**
-
-- Monitor position health factor continuously
-- When health drops below threshold (e.g., 1.5), repay portion of debt
-- Gradually reduces leverage to prevent liquidation
-- Position remains open but safer
-
-**Use case:** Maintain long-term positions while managing risk
-
----
-
-### Auto-Boost Mode
-
-**Purpose:** Maximize returns by increasing leverage when safe
-
-**How it works:**
-
-- Monitor position health factor continuously
-- When health is high (e.g., > 2.0) and price rising, borrow more
-- Increase position size to capture more gains
-- Automatically compounds winning positions
-
-**Use case:** Aggressive return optimization in bull markets
-
----
 
 ### Leverage Position Mode
 
