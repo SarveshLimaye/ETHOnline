@@ -56,8 +56,6 @@ export async function aaveOperation({
     interestRateMode: 2,
   };
 
-  console.log(chain, "chain in execution params");
-
   if (operationPreCheckResult.success) {
     const operationExecutionResult = await aaveSupplyToolClient.execute(
       supplyExecutionParams,
@@ -70,7 +68,9 @@ export async function aaveOperation({
       );
     }
 
-    return operationExecutionResult.result.transactionHash;
+    console.log(operationExecutionResult, operation, "console logggg");
+
+    return operationExecutionResult.result.txHash;
   } else {
     // Handle different types of failures
     if (operationPreCheckResult.runtimeError) {

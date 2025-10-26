@@ -26,6 +26,8 @@ import {
 } from "../../utils/fetchPrice/fetchPrice";
 import { getMaxLTV } from "../../utils/aave/ltv";
 
+import { TransactionModal } from "../Modal";
+
 interface CreateOrderTabProps {
   userAddress: string;
 }
@@ -54,12 +56,24 @@ interface LeveragedAutomationFormData {
   borrowAmount: string;
 }
 
+interface TransactionStep {
+  name: string;
+  status: "pending" | "loading" | "success" | "error";
+  txHash?: string;
+  error?: string;
+}
+
 export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
   const [orderType, setOrderType] = useState<
     "stopLoss" | "takeProfit" | "automatedLeverageManagement"
   >("stopLoss");
 
-  const { createOrder } = useBackend();
+  const {
+    createOrder,
+    litAutomatedApproval,
+    litAutomatedSupply,
+    litAutomatedBorrow,
+  } = useBackend();
 
   const [stopLossForm, setStopLossForm] = useState<StopLossFormData>({
     collateralAsset: "cbETH",
@@ -95,6 +109,13 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
   const [maxBorrowLeveraged, setMaxBorrowLeveraged] = useState<number>(0);
   const [maxBorrowStopLoss, setMaxBorrowStopLoss] = useState<number>(0);
   const [maxBorrowTakeProfit, setMaxBorrowTakeProfit] = useState<number>(0);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [transactionSteps, setTransactionSteps] = useState<TransactionStep[]>([
+    { name: "Approve", status: "pending" },
+    { name: "Supply", status: "pending" },
+    { name: "Borrow", status: "pending" },
+  ]);
 
   // Fetch max borrow when relevant inputs change
   useEffect(() => {
@@ -219,11 +240,21 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
     return Number.parseFloat(borrowAmount) <= maxBorrow;
   };
 
+  const updateTransactionStep = (
+    stepIndex: number,
+    updates: Partial<TransactionStep>
+  ) => {
+    setTransactionSteps((prev) =>
+      prev.map((step, idx) =>
+        idx === stepIndex ? { ...step, ...updates } : step
+      )
+    );
+  };
+
   const handleStopLossSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingType("stopLoss");
     setSubmitStatus("idle");
-
     const orderType = "stopLoss";
     const collateralTokenAddress: string =
       TOKENS.baseSepolia[
@@ -246,17 +277,61 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
       stopLossForm.minCollateralPrice
     );
 
-    createOrder({
+    setIsModalOpen(true);
+    updateTransactionStep(0, { status: "loading" });
+    const approvalResp = await litAutomatedApproval({
       ethAddress: userAddress,
-      collateralAsset: collateralTokenAddress,
-      loanAsset: debtTokenAddress,
-      collateralPriceMax,
-      collateralPriceMin,
-      orderType,
+      asset: collateralTokenAddress,
+      amount: Number.parseFloat(stopLossForm.collateralAmount),
     });
 
-    setSubmitStatus("success");
-    setSubmittingType(null);
+    updateTransactionStep(0, {
+      status: "success",
+      txHash: approvalResp?.txHash || "0x...",
+    });
+
+    // Step 2: Supply
+    updateTransactionStep(1, { status: "loading" });
+    const supplyResp = await litAutomatedSupply({
+      ethAddress: userAddress,
+      asset: collateralTokenAddress,
+      amount: Number.parseFloat(stopLossForm.collateralAmount),
+    });
+
+    console.log("Supply Tx Hash:", supplyResp);
+
+    updateTransactionStep(1, {
+      status: "success",
+      txHash: supplyResp?.txHash || "0x...",
+    });
+
+    if (supplyResp.status === "success") {
+      updateTransactionStep(2, { status: "loading" });
+      const borrowResp = await litAutomatedBorrow({
+        ethAddress: userAddress,
+        asset: debtTokenAddress,
+        amount: Number.parseFloat(stopLossForm.borrowAmount),
+      });
+
+      updateTransactionStep(2, {
+        status: "success",
+        txHash: borrowResp?.txHash || "0x...",
+      });
+
+      console.log("Borrow", borrowResp);
+
+      createOrder({
+        ethAddress: userAddress,
+        collateralAsset: collateralTokenAddress,
+        loanAsset: debtTokenAddress,
+        collateralPriceMax,
+        collateralPriceMin,
+        orderType,
+      });
+
+      setSubmitStatus("success");
+      setSubmittingType(null);
+    }
   };
 
   const handleTakeProfitSubmit = async (e: React.FormEvent) => {
@@ -288,17 +363,65 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
     );
     const collateralPriceMin = 0;
 
-    createOrder({
+    setIsModalOpen(true);
+    updateTransactionStep(0, { status: "loading" });
+    const approvalResp = await litAutomatedApproval({
       ethAddress: userAddress,
-      collateralAsset: collateralTokenAddress,
-      loanAsset: debtTokenAddress,
-      collateralPriceMax,
-      collateralPriceMin,
-      orderType,
+      asset: collateralTokenAddress,
+      amount: Number.parseFloat(takeProfitForm.collateralAmount),
     });
 
-    setSubmitStatus("success");
-    setSubmittingType(null);
+    updateTransactionStep(0, {
+      status: "success",
+      txHash: approvalResp?.txHash || "0x...",
+    });
+
+    console.log("Approval Tx Hash:", approvalResp);
+
+    // Step 2: Supply
+    updateTransactionStep(1, { status: "loading" });
+
+    const supplyResp = await litAutomatedSupply({
+      ethAddress: userAddress,
+      asset: collateralTokenAddress,
+      amount: Number.parseFloat(takeProfitForm.collateralAmount),
+    });
+
+    console.log("Supply Tx Hash:", supplyResp);
+
+    updateTransactionStep(1, {
+      status: "success",
+      txHash: supplyResp?.txHash || "0x...",
+    });
+
+    if (supplyResp.status === "success") {
+      createOrder({
+        ethAddress: userAddress,
+        collateralAsset: collateralTokenAddress,
+        loanAsset: debtTokenAddress,
+        collateralPriceMax,
+        collateralPriceMin,
+        orderType,
+      });
+
+      updateTransactionStep(2, { status: "loading" });
+
+      const borrowResp = await litAutomatedBorrow({
+        ethAddress: userAddress,
+        asset: debtTokenAddress,
+        amount: Number.parseFloat(takeProfitForm.borrowAmount),
+      });
+
+      updateTransactionStep(2, {
+        status: "success",
+        txHash: borrowResp?.txHash || "0x...",
+      });
+
+      console.log("Borrow Tx Hash:", borrowResp);
+
+      setSubmitStatus("success");
+      setSubmittingType(null);
+    }
   };
 
   const handleLeveragedSubmit = async (e: React.FormEvent) => {
@@ -323,7 +446,7 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
         leveragedForm.debtAsset as keyof typeof TOKENS.baseSepolia
       ] ?? "";
 
-    const orderType = "stopLoss";
+    const orderType = "automatedLeverageManagement";
 
     if (!validateBorrowAmount(leveragedForm.borrowAmount, maxBorrowLeveraged)) {
       setSubmitStatus("error");
@@ -334,18 +457,64 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
     const collateralPriceMax = 0;
     const collateralPriceMin = 0;
 
-    createOrder({
+    setIsModalOpen(true);
+    updateTransactionStep(0, { status: "loading" });
+    const approvalResp = await litAutomatedApproval({
       ethAddress: userAddress,
-      collateralAsset: collateralTokenAddress,
-      loanAsset: debtTokenAddress,
-      collateralPriceMax,
-      collateralPriceMin,
-      orderType,
-      healthRatioToMaintain: healthRatio,
+      asset: collateralTokenAddress,
+      amount: Number.parseFloat(leveragedForm.collateralAmount),
     });
 
-    setSubmitStatus("success");
-    setSubmittingType(null);
+    updateTransactionStep(0, {
+      status: "success",
+      txHash: approvalResp?.txHash || "0x...",
+    });
+
+    console.log("Approval Tx Hash:", approvalResp);
+
+    // Step 2: Supply
+    updateTransactionStep(1, { status: "loading" });
+    const supplyResp = await litAutomatedSupply({
+      ethAddress: userAddress,
+      asset: collateralTokenAddress,
+      amount: Number.parseFloat(leveragedForm.collateralAmount),
+    });
+
+    console.log("Supply Tx Hash:", supplyResp);
+
+    updateTransactionStep(1, {
+      status: "success",
+      txHash: supplyResp?.txHash || "0x...",
+    });
+
+    if (supplyResp.status === "success") {
+      createOrder({
+        ethAddress: userAddress,
+        collateralAsset: collateralTokenAddress,
+        loanAsset: debtTokenAddress,
+        collateralPriceMax,
+        collateralPriceMin,
+        orderType,
+      });
+
+      updateTransactionStep(2, { status: "loading" });
+
+      const borrowResp = await litAutomatedBorrow({
+        ethAddress: userAddress,
+        asset: debtTokenAddress,
+        amount: Number.parseFloat(leveragedForm.borrowAmount),
+      });
+
+      updateTransactionStep(2, {
+        status: "success",
+        txHash: borrowResp?.txHash || "0x...",
+      });
+
+      console.log("Borrow Tx Hash:", borrowResp.txHash);
+
+      setSubmitStatus("success");
+      setSubmittingType(null);
+    }
   };
 
   const MaxBorrowTooltip = () => (
@@ -367,6 +536,13 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
 
   return (
     <div className="space-y-6">
+      <TransactionModal
+        isOpen={isModalOpen}
+        steps={transactionSteps}
+        onClose={() => setIsModalOpen(false)}
+        title="Creating Order"
+      />
+
       <div>
         <h2 className="text-2xl font-bold text-white mb-2">Create New Order</h2>
         <p className="text-slate-400">
