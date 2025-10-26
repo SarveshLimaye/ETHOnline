@@ -19,6 +19,8 @@ export type Order = {
   loanAsset: string;
   orderType: "automatedLeverageManagement" | "stopLoss" | "takeProfit";
   healthRatioToMaintain?: number;
+  collateralAmount: number;
+  borrowAmount: number;
 };
 
 export type LitRequest = {

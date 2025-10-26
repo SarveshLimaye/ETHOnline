@@ -327,6 +327,8 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
         collateralPriceMax,
         collateralPriceMin,
         orderType,
+        collateralAmount: Number.parseFloat(stopLossForm.collateralAmount),
+        borrowAmount: Number.parseFloat(stopLossForm.borrowAmount),
       });
 
       setSubmitStatus("success");
@@ -402,6 +404,8 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
         collateralPriceMax,
         collateralPriceMin,
         orderType,
+        collateralAmount: Number.parseFloat(takeProfitForm.collateralAmount),
+        borrowAmount: Number.parseFloat(takeProfitForm.borrowAmount),
       });
 
       updateTransactionStep(2, { status: "loading" });
@@ -495,6 +499,8 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
         collateralPriceMax,
         collateralPriceMin,
         orderType,
+        collateralAmount: Number.parseFloat(leveragedForm.collateralAmount),
+        borrowAmount: Number.parseFloat(leveragedForm.borrowAmount),
       });
 
       updateTransactionStep(2, { status: "loading" });
