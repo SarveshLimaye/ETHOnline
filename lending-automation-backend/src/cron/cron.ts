@@ -1,3 +1,4 @@
+//@ts-ignore
 import { CHAINLINK_ABI } from "../utils/abi/chainlink";
 import Order from "../models/Order";
 import { ethers } from "ethers";

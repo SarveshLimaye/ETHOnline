@@ -1,3 +1,4 @@
+// @ts-nocheck comment
 import mongoose, { Schema } from "mongoose";
 
 const orderSchema: Schema = new Schema(

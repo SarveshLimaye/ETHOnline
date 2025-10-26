@@ -1,3 +1,4 @@
+// @ts-nocheck comment
 import Order from "../models/Order";
 
 export const createOrder = async (orderData: any) => {

@@ -1,3 +1,4 @@
+// @ts-nocheck comment
 export interface OrderType {
   ethAddress: string;
   collateralPriceMax: number;

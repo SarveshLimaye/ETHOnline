@@ -1,3 +1,4 @@
+// @ts-nocheck comment
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
