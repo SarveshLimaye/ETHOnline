@@ -6,6 +6,8 @@ const orderSchema: Schema = new Schema(
     collateralPriceMax: { type: Number, required: true },
     collateralPriceMin: { type: Number, required: true },
     collateralAsset: { type: String, required: true },
+    collateralAmount: { type: Number, required: true },
+    borrowAmount: { type: Number, required: true },
     loanAsset: { type: String, required: true },
     orderType: {
       type: String,

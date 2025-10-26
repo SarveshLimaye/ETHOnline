@@ -6,4 +6,6 @@ export interface OrderType {
   loanAsset: string;
   orderType: "automatedLeverageManagement" | "stopLoss" | "takeProfit";
   healthRatioToMaintain?: number;
+  collateralAmount: number;
+  borrowAmount: number;
 }
