@@ -1,90 +1,136 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
-import { Trash2, Copy, CheckCircle } from "lucide-react";
+import { Trash2, Info } from "lucide-react";
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { useBackend } from "../../hooks/useBackend";
+
+import { TransactionModal } from "../Modal";
+import { getSymbolFromAddress } from "../../utils/tokens";
 
 interface Order {
-  id: string;
-  orderType: "automatedLeverageManagement" | "stopLoss" | "takeProfit";
+  _id: string;
+  ethAddress: string;
   collateralAsset: string;
-  loanAsset: string;
+  collateralAmount: number;
   collateralPriceMin: number;
   collateralPriceMax: number;
-  loanTokenPriceMin: number;
-  loanTokenPriceMax: number;
+  loanAsset: string;
+  borrowAmount: number;
+  orderType: "automatedLeverageManagement" | "stopLoss" | "takeProfit";
+  healthRatioToMaintain?: number;
   createdAt: string;
-  status: "active" | "completed" | "cancelled";
+  updatedAt: string;
 }
 
 interface ViewOrdersTabProps {
   userAddress: string;
 }
 
+interface TransactionStep {
+  name: string;
+  status: "pending" | "loading" | "success" | "error";
+  txHash?: string;
+  error?: string;
+}
+
 export function ViewOrdersTab({ userAddress }: ViewOrdersTabProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const [transactionSteps, setTransactionSteps] = useState<TransactionStep[]>([
+    { name: "Approve", status: "pending" },
+    { name: "Repay", status: "pending" },
+    { name: "Withdraw", status: "pending" },
+  ]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const {
+    getOrdersByAddress,
+    litAutomateRepay,
+    litAutomatedApproval,
+    litAutomateWithdraw,
+    deleteOrder,
+  } = useBackend();
 
   useEffect(() => {
-    // Simulate fetching orders
-    setTimeout(() => {
-      setOrders([
-        {
-          id: "0x1234...5678",
-          orderType: "automatedLeverageManagement",
-          collateralAsset: "ETH",
-          loanAsset: "USDC",
-          collateralPriceMin: 1500,
-          collateralPriceMax: 3000,
-          loanTokenPriceMin: 0.95,
-          loanTokenPriceMax: 1.05,
-          createdAt: new Date(
-            Date.now() - 2 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          status: "active",
-        },
-        {
-          id: "0x9876...5432",
-          orderType: "stopLoss",
-          collateralAsset: "BTC",
-          loanAsset: "USDC",
-          collateralPriceMin: 35000,
-          collateralPriceMax: 50000,
-          loanTokenPriceMin: 0.98,
-          loanTokenPriceMax: 1.02,
-          createdAt: new Date(
-            Date.now() - 5 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          status: "active",
-        },
-        {
-          id: "0xabcd...ef01",
-          orderType: "takeProfit",
-          collateralAsset: "ETH",
-          loanAsset: "DAI",
-          collateralPriceMin: 2000,
-          collateralPriceMax: 4000,
-          loanTokenPriceMin: 0.99,
-          loanTokenPriceMax: 1.01,
-          createdAt: new Date(
-            Date.now() - 10 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          status: "completed",
-        },
-      ]);
-      setIsLoading(false);
-    }, 800);
+    const fetchOrders = async () => {
+      setIsLoading(true);
+      try {
+        const fetchedOrders = await getOrdersByAddress(userAddress);
+        setOrders(fetchedOrders as any[]);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOrders();
   }, []);
 
-  const handleCopyId = (id: string) => {
-    navigator.clipboard.writeText(id);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  const updateTransactionStep = (
+    stepIndex: number,
+    updates: Partial<TransactionStep>
+  ) => {
+    setTransactionSteps((prev) =>
+      prev.map((step, idx) =>
+        idx === stepIndex ? { ...step, ...updates } : step
+      )
+    );
   };
 
-  const handleDeleteOrder = (id: string) => {
-    setOrders(orders.filter((order) => order.id !== id));
+  const handleDeleteOrder = async (order: Order) => {
+    setIsModalOpen(true);
+
+    updateTransactionStep(0, { status: "loading" });
+    const approveResp = await litAutomatedApproval({
+      ethAddress: order.ethAddress,
+      asset: order.loanAsset,
+      amount: order.borrowAmount,
+    });
+
+    updateTransactionStep(0, {
+      status: "success",
+      txHash: approveResp?.txHash || "0x...",
+    });
+
+    console.log("Approve Response:", approveResp);
+
+    if (approveResp.status === "success") {
+      updateTransactionStep(1, { status: "loading" });
+      const repayResp = await litAutomateRepay({
+        ethAddress: order.ethAddress,
+        asset: order.loanAsset,
+        amount: order.borrowAmount,
+      });
+
+      updateTransactionStep(1, {
+        status: "success",
+        txHash: repayResp?.txHash || "0x...",
+      });
+
+      console.log("Repay Response:", repayResp);
+
+      if (repayResp.status === "success") {
+        updateTransactionStep(2, { status: "loading" });
+        const withdrawResp = await litAutomateWithdraw({
+          ethAddress: order.ethAddress,
+          asset: order.collateralAsset,
+          amount: order.collateralAmount,
+        });
+
+        console.log("Withdraw Response:", withdrawResp);
+
+        updateTransactionStep(2, {
+          status: "success",
+          txHash: withdrawResp?.txHash || "0x...",
+        });
+
+        if (withdrawResp.status === "success") {
+          deleteOrder(order._id);
+        }
+      }
+    }
   };
 
   const getOrderTypeLabel = (type: string) => {
@@ -94,15 +140,6 @@ export function ViewOrdersTab({ userAddress }: ViewOrdersTabProps) {
       takeProfit: "Take Profit",
     };
     return labels[type] || type;
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      active: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-      completed: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-      cancelled: "bg-red-500/20 text-red-400 border-red-500/30",
-    };
-    return colors[status] || colors.active;
   };
 
   if (isLoading) {
@@ -125,145 +162,158 @@ export function ViewOrdersTab({ userAddress }: ViewOrdersTabProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Your Orders</h2>
-        <p className="text-slate-400">
-          {orders.length} order{orders.length !== 1 ? "s" : ""} found
-        </p>
-      </div>
+    <Tooltip.Provider>
+      <div className="space-y-6">
+        <TransactionModal
+          isOpen={isModalOpen}
+          steps={transactionSteps}
+          onClose={() => setIsModalOpen(false)}
+          title="Deleting Order"
+        />
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Your Orders</h2>
+          <p className="text-slate-400">
+            {orders.length} order{orders.length !== 1 ? "s" : ""} found
+          </p>
+        </div>
 
-      {orders.length === 0 ? (
-        <Card className="border-slate-800 bg-slate-900/50">
-          <CardContent className="pt-12 pb-12 text-center">
-            <p className="text-slate-400 mb-4">No orders yet</p>
-            <p className="text-sm text-slate-500">
-              Create your first order to get started
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {orders.map((order) => (
-            <Card
-              key={order.id}
-              className="border-slate-800 bg-slate-900/50 hover:bg-slate-900/70 transition-colors"
-            >
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  {/* Header Row */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex items-center gap-3">
+        {orders.length === 0 ? (
+          <Card className="border-slate-800 bg-slate-900/50">
+            <CardContent className="pt-12 pb-12 text-center">
+              <p className="text-slate-400 mb-4">No orders yet</p>
+              <p className="text-sm text-slate-500">
+                Create your first order to get started
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {orders.map((order) => (
+              <Card
+                key={order._id}
+                className="border-slate-800 bg-slate-900/50 hover:bg-slate-900/70 transition-colors"
+              >
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    {/* Header Row */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
                         <p className="font-semibold text-white">
                           {getOrderTypeLabel(order.orderType)}
                         </p>
-                        <p className="text-sm text-slate-400 font-mono">
-                          {order.id}
+                        <p className="text-sm text-slate-400 mt-1">
+                          {new Date(order.createdAt).toLocaleDateString()}
                         </p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        className={`${getStatusColor(order.status)} border`}
+                      <Button
+                        onClick={() => handleDeleteOrder(order)}
+                        size="sm"
+                        className="bg-red-600 hover:bg-red-700 text-white"
                       >
-                        {order.status.charAt(0).toUpperCase() +
-                          order.status.slice(1)}
-                      </Badge>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
                     </div>
-                  </div>
 
-                  {/* Details Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-t border-b border-slate-800">
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">
-                        Collateral
-                      </p>
-                      <p className="text-sm font-semibold text-white mt-1">
-                        {order.collateralAsset}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">
-                        Loan Asset
-                      </p>
-                      <p className="text-sm font-semibold text-white mt-1">
-                        {order.loanAsset}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">
-                        Collateral Range
-                      </p>
-                      <p className="text-sm font-semibold text-white mt-1">
-                        ${order.collateralPriceMin.toLocaleString()} - $
-                        {order.collateralPriceMax.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">
-                        Created
-                      </p>
-                      <p className="text-sm font-semibold text-white mt-1">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 py-4 border-t border-b border-slate-800">
+                      <div>
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">
+                          Collateral Asset
+                        </p>
+                        <p className="text-sm font-semibold text-white mt-1">
+                          {getSymbolFromAddress(order.collateralAsset) ||
+                            order.collateralAsset}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">
+                          Collateral Amount
+                        </p>
+                        <p className="text-sm font-semibold text-white mt-1">
+                          {order.collateralAmount}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">
+                          Loan Asset
+                        </p>
+                        <p className="text-sm font-semibold text-white mt-1">
+                          {getSymbolFromAddress(order.loanAsset) ||
+                            order.loanAsset}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">
+                          Borrow Amount
+                        </p>
+                        <p className="text-sm font-semibold text-white mt-1">
+                          {order.borrowAmount}
+                        </p>
+                      </div>
 
-                  {/* Price Details */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="p-3 rounded bg-slate-800/50">
-                      <p className="text-slate-400">Loan Price Range</p>
-                      <p className="text-white font-semibold mt-1">
-                        ${order.loanTokenPriceMin.toFixed(2)} - $
-                        {order.loanTokenPriceMax.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded bg-slate-800/50">
-                      <p className="text-slate-400">Status</p>
-                      <p className="text-emerald-400 font-semibold mt-1">
-                        {order.status === "active"
-                          ? "🟢 Active"
-                          : "✓ Completed"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      onClick={() => handleCopyId(order.id)}
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
-                    >
-                      {copiedId === order.id ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4 mr-2" />
-                          Copy ID
-                        </>
+                      {order.orderType === "stopLoss" && (
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <div className="cursor-help">
+                              <p className="text-xs text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                                Min Collateral Price
+                                <Info className="w-3 h-3" />
+                              </p>
+                              <p className="text-sm font-semibold text-white mt-1">
+                                ${order.collateralPriceMin}
+                              </p>
+                            </div>
+                          </Tooltip.Trigger>
+                          <Tooltip.Content className="bg-slate-800 text-white text-xs px-3 py-2 rounded border border-slate-700 max-w-xs">
+                            When collateral price reaches below this price, your
+                            loan will be automatically repaid and collateral
+                            will be withdrawn.
+                          </Tooltip.Content>
+                        </Tooltip.Root>
                       )}
-                    </Button>
-                    <Button
-                      onClick={() => handleDeleteOrder(order.id)}
-                      variant="outline"
-                      size="sm"
-                      className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+
+                      {order.orderType === "takeProfit" && (
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <div className="cursor-help">
+                              <p className="text-xs text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                                Max Collateral Price
+                                <Info className="w-3 h-3" />
+                              </p>
+                              <p className="text-sm font-semibold text-white mt-1">
+                                ${order.collateralPriceMax}
+                              </p>
+                            </div>
+                          </Tooltip.Trigger>
+                          <Tooltip.Content className="bg-slate-800 text-white text-xs px-3 py-2 rounded border border-slate-700 max-w-xs">
+                            When collateral price reaches this maximum price,
+                            your position will be automatically closed to lock
+                            in profits.
+                          </Tooltip.Content>
+                        </Tooltip.Root>
+                      )}
+                    </div>
+
+                    {/* Health Ratio for Automated Leverage */}
+                    {order.orderType === "automatedLeverageManagement" &&
+                      order.healthRatioToMaintain && (
+                        <div className="p-3 rounded bg-slate-800/50">
+                          <p className="text-slate-400 text-xs uppercase tracking-wide">
+                            Health Ratio to Maintain
+                          </p>
+                          <p className="text-white font-semibold mt-1">
+                            {order.healthRatioToMaintain}%
+                          </p>
+                        </div>
+                      )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </Tooltip.Provider>
   );
 }

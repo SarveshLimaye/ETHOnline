@@ -529,7 +529,14 @@ export function CreateOrderTab({ userAddress }: CreateOrderTabProps) {
       <p className="text-xs">
         Formula:{" "}
         <span className="text-emerald-400">
-          Collateral Amount × Collateral Price × 0.8 (80% LTV)
+          {orderType === "automatedLeverageManagement" &&
+            "Collateral Amount × Collateral Price × LTV  / health Factor to Maintain"}
+
+          {orderType === "stopLoss" &&
+            "Collateral Amount × stop loss collateral price × LTV / 100 (1 health factor)"}
+
+          {orderType === "takeProfit" &&
+            "Collateral Amount × Collateral Price × LTV / 100 (1 health factor)"}
         </span>
       </p>
       <p className="text-xs mt-2">

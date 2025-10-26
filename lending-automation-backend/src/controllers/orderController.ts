@@ -83,6 +83,42 @@ export const litAutomatedSupply = async (req: Request, res: Response) => {
   }
 };
 
+export const litAutomateRepay = async (req: Request, res: Response) => {
+  try {
+    const repayTx = await aaveOperation({
+      ethAddress: req.body.ethAddress,
+      operation: "repay",
+      asset: req.body.asset,
+      amount: req.body.amount,
+      chain: "baseSepolia",
+      rpcUrl: process.env.BASE_SEPOLIA_RPC as string,
+    });
+
+    res.status(200).json({ txHash: repayTx, status: "success" });
+  } catch (error) {
+    console.error("Error in repay:", error);
+    res.status(500).json({ message: "Error during repay", error });
+  }
+};
+
+export const litAutomateWithdraw = async (req: Request, res: Response) => {
+  try {
+    const withdrawTx = await aaveOperation({
+      ethAddress: req.body.ethAddress,
+      operation: "withdraw",
+      asset: req.body.asset,
+      amount: req.body.amount,
+      chain: "baseSepolia",
+      rpcUrl: process.env.BASE_SEPOLIA_RPC as string,
+    });
+
+    res.status(200).json({ txHash: withdrawTx, status: "success" });
+  } catch (error) {
+    console.error("Error in withdraw:", error);
+    res.status(500).json({ message: "Error during withdraw", error });
+  }
+};
+
 export const litAutomatedBorrow = async (req: Request, res: Response) => {
   try {
     const borrowTx = await aaveOperation({
@@ -135,5 +171,23 @@ export const deleteOrder = async (req: Request, res: Response) => {
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ message: "Error deleting order", error });
+  }
+};
+
+export const getOrdersByAddress = async (req: Request, res: Response) => {
+  try {
+    const { ethAddress } = req.params;
+
+    console.log("Fetching orders for address:", ethAddress);
+
+    // Remove the 'where' wrapper - just pass the query object directly
+    const orders = await Order.find({ ethAddress: ethAddress });
+
+    console.log("Fetched orders:", orders);
+    res.status(200).json(orders);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching orders by address", error });
   }
 };

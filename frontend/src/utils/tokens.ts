@@ -6,3 +6,13 @@ export const TOKENS = {
     cbETH: "0xD171b9694f7A2597Ed006D41f7509aaD4B485c4B",
   },
 };
+
+export const getSymbolFromAddress = (address: string) => {
+  const tokens = TOKENS["baseSepolia" as keyof typeof TOKENS];
+  for (const [symbol, addr] of Object.entries(tokens)) {
+    if (addr.toLowerCase() === address.toLowerCase()) {
+      return symbol;
+    }
+  }
+  return null;
+};
